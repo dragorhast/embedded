@@ -16,10 +16,10 @@ from time import sleep
 
 from gpiozero import RGBLED
 
-from embedded.fona808 import FONA808
+from embedded.fona808 import FONA808, GPSStatus
 
 GPS_MODULE = FONA808("/dev/ttyS0")
-GPS_LOCKED = False
+GPS_STATUS = GPSStatus.UNKNOWN
 
 QUIT_EVENT = Event()
 
@@ -48,10 +48,10 @@ def set_rgb_colour(led: RGBLED, colour: Colour):
 
 def handle_gps_polling():
     """Polls the gps lock and updates GPS_LOCKED."""
-    global GPS_LOCKED
+    global GPS_STATUS
 
     while not QUIT_EVENT.is_set():
-        GPS_LOCKED = GPS_MODULE.has_gps_lock()
+        GPS_STATUS = GPS_MODULE.get_gps_status()
         sleep(1)
 
     GPS_MODULE.close()
@@ -59,14 +59,13 @@ def handle_gps_polling():
 
 def handle_lighting():
     """Handles the lighting state management."""
-    global GPS_LOCKED
 
     status_led = RGBLED(13, 19, 26)
     steps = 100
     current_step = 0
 
     while not QUIT_EVENT.is_set():
-        if GPS_LOCKED:
+        if GPS_STATUS in GPSStatus.locked_states():
             set_rgb_colour(status_led, Colour.GREEN)
             sleep(1)
         else:
